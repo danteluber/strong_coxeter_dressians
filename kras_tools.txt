@@ -1,0 +1,101 @@
+struct Krasner
+    val::Bool  # false → 0, true → 1
+end
+
+# Setting up multiplication and addition of the Krasner Hyperfield
+import Base: *
+*(a::Krasner, b::Krasner) = Set([Krasner(a.val && b.val)])
+
+import Base: +
++(a::Krasner, b::Krasner) = 
+if b.val == false #b==0
+    return Set([a])
+elseif a.val == false  # a == 0
+    return Set([b])
+else  # a ≠ b, and both ≠ 0 → return {0, 1}
+    return Set([Krasner(0), Krasner(1)])
+end
+
+function hyperadd(a,b)
+    M = Set{Krasner}()
+    for x in a, y in b
+        M = union(M, x+y)
+    end
+    return M
+end
+
+function hypermultiply(a::Set{Krasner},b::Set{Krasner})
+    M = Set{Krasner}()
+    for x in a, y in b
+        M = union(M, x*y)
+    end
+    return M
+end
+
+function hypermultiply(a::Krasner,b::Set{Krasner})
+    M = Set{Krasner}()
+    for y in b
+        M = union(M, a*y)
+    end
+    return M
+end
+
+function hypermultiply(a::Set{Krasner},b::Krasner)
+    M = Set{Krasner}()
+    for x in a
+        M = union(M, x*b)
+    end
+    return M
+end
+
+import Base: +
++(a::Set{Krasner}, b::Set{Krasner}) = hyperadd(a,b)
+
+import Base: *
+*(a::Union{Krasner, Set{Krasner}}, b::Union{Krasner, Set{Krasner}}) = hypermultiply(a,b)
+
+#A = Set([Krasner(1), Krasner(0)])
+#B = Set([Krasner(0)])
+#C = Set([Krasner(1)])
+
+#(C+C)*B
+
+function toKrasner(x)
+    return [Krasner(i!=0) for i in x]    
+end
+
+function n_bases_to_Krasner(M,V)
+    xvec = toKrasner(zeros(Int,length(V)))
+    for i in 1:length(V)
+        if V[i] in M
+            xvec[i] = Krasner(1)
+        end
+    end
+    return xvec
+end
+#f = polynomial (I guess it needs to be quadratic,x = generators of ambient ring,z = Kranserized vector
+function n_evaluate_krasner(f,x,z)
+    inds = [[i for i in 1:length(x) if x[i] in vars(m)] for m in monomials(f)]
+    p = [hypermultiply(Set([z[t[1]]]),Set([z[t[2]]])) for t in inds]
+    #println(p)
+    return (length([i for i in 1:length(p) if p[i] == Set([Krasner(true)])])>1 || all([p[i] == Set([Krasner(false)]) for i in 1:length(p)]))
+end
+
+function subdivision_is_strong(S,V,F)
+    x = gens(parent(F[1]))
+    V = [i for i in 1:length(V)]
+    Ms = maximal_cells(S)
+    zs = [n_bases_to_Krasner(m,V) for m in Ms]
+    return all([all([n_evaluate_krasner(f,x,z) for f in F]) for z in zs])
+end
+
+function in_hypersurface(v,f,x)
+    inds = [[i for i in 1:length(x) if x[i] in vars(m)] for m in monomials(f)]
+    t = [sum([v[p] for p in J]) for J in inds]
+    return length([k for k in 1:length(t) if minimum(t) == t[k]])>1
+end
+
+function in_prevariety(v,F)
+    x = gens(parent(F[1]))
+    return all([in_hypersurface(v,f,x) for f in F])
+end
