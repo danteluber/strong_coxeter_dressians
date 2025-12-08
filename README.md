@@ -1,0 +1,1 @@
+We study the tropical prevarieties associated with Strong exchange equations of minuscule Coxeter matroids. In particular, we are interested in the induced subdivisions of the associated Coxeter matroid polytopes. This is based on joint work with Andreas Gross and Kevin Kühn.
